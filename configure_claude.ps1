@@ -6,9 +6,24 @@ param(
     [string]$ConfigPath
 )
 
-# 需要管理员权限检查（某些系统可能需要）
+# 管理员权限检查
 if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Warning "注意：某些操作可能需要管理员权限"
+    Write-Host ""
+    Write-Host "=========================================="  -ForegroundColor Red
+    Write-Host "  请在管理员模式的 PowerShell 下运行此脚本" -ForegroundColor Red
+    Write-Host "=========================================="  -ForegroundColor Red
+    Write-Host ""
+    Write-Host "操作步骤：" -ForegroundColor Yellow
+    Write-Host "  1. 右键点击 Windows 开始菜单"
+    Write-Host "  2. 选择「终端管理员」或「Windows PowerShell (管理员)」"
+    Write-Host "  3. 重新执行以下命令："
+    Write-Host ""
+    Write-Host "     Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass" -ForegroundColor Cyan
+    Write-Host "     .\configure_claude.ps1" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "按任意键退出..."
+    [void][Console]::ReadKey($true)
+    exit 1
 }
 
 # 颜色函数
@@ -166,7 +181,7 @@ switch ($choice) {
         $PROVIDER = "stepfun-plan"
         $PROMPT = "请输入 StepFun API Key"
         $DEFAULT_MODEL = "step-3.5-flash"
-        $BASE_URL = "https://api.stepfun.com/step_plan/v1"
+        $BASE_URL = "https://api.stepfun.com/step_plan"
     }
 }
 
@@ -199,8 +214,6 @@ $newConfig = [ordered]@{
     env = [ordered]@{
         ANTHROPIC_BASE_URL = $BASE_URL
         ANTHROPIC_AUTH_TOKEN = $API_KEY
-        API_TIMEOUT_MS = "3000000"
-        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"
         ANTHROPIC_MODEL = $MODEL_NAME
         ANTHROPIC_SMALL_FAST_MODEL = $MODEL_NAME
         ANTHROPIC_DEFAULT_SONNET_MODEL = $MODEL_NAME

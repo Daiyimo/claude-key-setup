@@ -21,9 +21,15 @@ chmod +x configure_claude.sh
 bash configure_claude.sh
 ```
 
-### Windows（PowerShell）
+### Windows（PowerShell 管理员模式）
+
+> ⚠️ 必须在**管理员模式**的 PowerShell 下运行，否则脚本会提示并退出。
+
+1. 右键点击 Windows 开始菜单，选择「终端管理员」或「Windows PowerShell (管理员)」
+2. 执行以下命令：
 ```powershell
-curl -fsSL https://raw.githubusercontent.com/Zgh332358/claude-key-setup/main/configure_claude.ps1 -o configure_claude.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+irm https://raw.githubusercontent.com/Zgh332358/claude-key-setup/main/configure_claude.ps1 -OutFile configure_claude.ps1
 .\configure_claude.ps1
 ```
 
@@ -106,8 +112,6 @@ bash configure_claude.sh
 脚本会全量覆盖 `settings.json`，写入以下字段：
 - `env.ANTHROPIC_AUTH_TOKEN` - API Key
 - `env.ANTHROPIC_BASE_URL` - API 端点
-- `env.API_TIMEOUT_MS` - 超时时间
-- `env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` - 禁用非必要流量
 - `env.ANTHROPIC_MODEL` - 默认模型
 - `env.ANTHROPIC_SMALL_FAST_MODEL` - 快速模型
 - `env.ANTHROPIC_DEFAULT_SONNET_MODEL` - Sonnet 模型
