@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Claude Code API Key 配置脚本
+# Claude Code API Key 配置脚本 - StepFun 专用
 # 支持：curl ... | bash （交互式）
 # 自动检测 Claude Code 配置位置
 
@@ -156,26 +156,24 @@ if ! jq empty "$CONFIG_FILE" 2>/dev/null; then
     exit 1
 fi
 
-# 3. 菜单
+# 3. 菜单（只显示 StepFun 两个选项）
 echo "=========================================="
-echo "  Claude Code 配置 - 设置 API Key"
+echo "  Claude Code 配置 - 设置 StepFun"
 echo "=========================================="
 echo ""
-echo "请选择 API 提供商："
-echo "  1) Anthropic 官方（推荐）"
-echo "  2) OpenRouter（多模型，价格优化）"
-echo "  3) StepFun（思道思）"
-echo "  4) 自定义端点"
+echo "请选择 StepFun 接入方式："
+echo "  1) StepFun 官方 API（按量计费）"
+echo "  2) StepFun Step Plan（订阅制）"
 echo ""
 
 # 4. 读取选择（使用 /dev/tty 支持管道执行）
 CHOICE=""
 while true; do
-    printf "请输入数字 [1-4]: "
+    printf "请输入数字 [1-2]: "
     if read -r CHOICE </dev/tty 2>/dev/null; then
         case "$CHOICE" in
-            1|2|3|4) break ;;
-            *) echo "无效输入，请输入 1、2、3 或 4" ;;
+            1|2) break ;;
+            *) echo "无效输入，请输入 1 或 2" ;;
         esac
     else
         echo ""
@@ -192,29 +190,16 @@ echo ""
 # 5. 根据选择获取配置信息
 case "$CHOICE" in
     1)
-        PROVIDER="anthropic"
-        PROMPT="请输入 Anthropic API Key (sk-ant-...): "
-        DEFAULT_MODEL="claude-3-5-sonnet-20241022"
-        BASE_URL="https://api.anthropic.com"
-        ;;
-    2)
-        PROVIDER="openrouter"
-        PROMPT="请输入 OpenRouter API Key (sk-or-...): "
-        DEFAULT_MODEL="claude-3-5-sonnet"
-        BASE_URL="https://openrouter.ai/api/v1"
-        ;;
-    3)
-        PROVIDER="stepfun"
+        PROVIDER="stepfun-official"
         PROMPT="请输入 StepFun API Key: "
         DEFAULT_MODEL="step-1"
-        BASE_URL="https://api.stepfun.com/v1"
+        BASE_URL="https://api.stepfun.com"
         ;;
-    4)
-        PROVIDER="custom"
-        read -p "请输入自定义 API 端点 URL: " CUSTOM_BASE_URL </dev/tty
-        PROMPT="请输入 API Key: "
-        DEFAULT_MODEL=""
-        BASE_URL="$CUSTOM_BASE_URL"
+    2)
+        PROVIDER="stepfun-plan"
+        PROMPT="请输入 StepFun API Key: "
+        DEFAULT_MODEL="step-1"
+        BASE_URL="https://api.stepfun.com/step_plan"
         ;;
 esac
 
@@ -236,13 +221,9 @@ while true; do
     fi
 done
 
-# 7. 读取模型名称（如果不是自定义）
-if [ "$PROVIDER" != "custom" ] && [ -n "$DEFAULT_MODEL" ]; then
-    read -p "模型名称 [默认: $DEFAULT_MODEL]: " MODEL_NAME </dev/tty
-    MODEL_NAME="${MODEL_NAME:-$DEFAULT_MODEL}"
-else
-    read -p "请输入模型名称: " MODEL_NAME </dev/tty
-fi
+# 7. 读取模型名称
+read -p "模型名称 [默认: $DEFAULT_MODEL]: " MODEL_NAME </dev/tty
+MODEL_NAME="${MODEL_NAME:-$DEFAULT_MODEL}"
 
 # 8. 备份配置
 echo ""
@@ -255,50 +236,13 @@ echo ""
 echo "⚙️  正在配置 Claude Code..."
 
 # 使用 jq 更新配置
-case "$PROVIDER" in
-    anthropic)
-        jq --arg token "$API_KEY" \
-           --arg base_url "$BASE_URL" \
-           --arg model "$MODEL_NAME" \
-           '.env.ANTHROPIC_AUTH_TOKEN = $token |
-            .env.ANTHROPIC_BASE_URL = $base_url |
-            .model = $model' \
-           "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
-        ;;
-    openrouter)
-        jq --arg token "$API_KEY" \
-           --arg base_url "$BASE_URL" \
-           --arg model "$MODEL_NAME" \
-           '.env.ANTHROPIC_AUTH_TOKEN = $token |
-            .env.ANTHROPIC_BASE_URL = $base_url |
-            .model = $model |
-            .statusLine.type = "command" |
-            .statusLine.command = "echo OpenRouter: \($model)"' \
-           "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
-        ;;
-    stepfun)
-        jq --arg token "$API_KEY" \
-           --arg base_url "$BASE_URL" \
-           --arg model "$MODEL_NAME" \
-           '.env.ANTHROPIC_AUTH_TOKEN = $token |
-            .env.ANTHROPIC_BASE_URL = $base_url |
-            .model = $model |
-            .statusLine.type = "command" |
-            .statusLine.command = "echo StepFun: \($model)"' \
-           "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
-        ;;
-    custom)
-        jq --arg token "$API_KEY" \
-           --arg base_url "$BASE_URL" \
-           --arg model "$MODEL_NAME" \
-           '.env.ANTHROPIC_AUTH_TOKEN = $token |
-            .env.ANTHROPIC_BASE_URL = $base_url |
-            .model = $model |
-            .statusLine.type = "command" |
-            .statusLine.command = "echo Custom: \($model)"' \
-           "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
-        ;;
-esac
+jq --arg token "$API_KEY" \
+   --arg base_url "$BASE_URL" \
+   --arg model "$MODEL_NAME" \
+   '.env.ANTHROPIC_AUTH_TOKEN = $token |
+    .env.ANTHROPIC_BASE_URL = $base_url |
+    .model = $model' \
+   "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
 
 echo -e "  ${GREEN}✅ Claude Code 配置已更新${NC}"
 echo ""
@@ -310,7 +254,7 @@ echo "📝 配置文件: $CONFIG_FILE"
 echo "📦 备份文件: $CONFIG_FILE.bak.*"
 echo ""
 echo "⚙️  当前配置："
-echo "   提供商: $(case "$PROVIDER" in anthropic) echo "Anthropic 官方" ;; openrouter) echo "OpenRouter" ;; stepfun) echo "StepFun" ;; custom) echo "自定义" ;; esac)"
+echo "   提供商: StepFun $( [ "$CHOICE" = "1" ] && echo "官方 API" || echo "Step Plan" )"
 echo "   API Key: ${API_KEY:0:10}..."
 echo "   端点: $BASE_URL"
 echo "   模型: $MODEL_NAME"
@@ -318,10 +262,5 @@ echo ""
 echo "⚠️  重要：请重启 Claude Code 使配置生效"
 echo ""
 echo "获取 API Key："
-case "$PROVIDER" in
-    anthropic) echo "  Anthropic: https://console.anthropic.com/settings/keys" ;;
-    openrouter) echo "  OpenRouter: https://openrouter.ai/keys" ;;
-    stepfun) echo "  StepFun: https://platform.stepfun.com/console/apikeys" ;;
-    custom) echo "  请在您的服务提供商处获取 API Key" ;;
-esac
+echo "  StepFun: https://platform.stepfun.com/console/apikeys"
 echo ""
